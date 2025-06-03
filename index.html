@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <title>段ボール積み</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.2/dist/gsap.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            background: #f5f0e6;
+        }
+
+        .box {
+            position: absolute;
+            background: url('cardboard.png') no-repeat center/contain;
+            background-size: contain;
+            pointer-events: none;
+        }
+
+        .achievements {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            padding: 20px;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            max-width: 1000px;
+            margin: 0 auto;
+            align-items: center;
+        }
+
+        @media (max-width: 768px) {
+            .achievements {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .achievements__box {
+            min-height: 300px;
+            position: relative;
+            /* overflow: hidden; */
+            top: -80px;
+        }
+        .achievements__body {
+            padding: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="achievements">
+        <div class="achievements__box js-box"></div>
+        <div class="achievements__body">
+            <h2 class="achievements__title">寄付実績 1400枚</h2>
+            <time datetime="2025-06-03">2025.06.03</time>
+            <p class="achievements__description">
+                寄付実績が1400枚を突破しました！
+            </p>
+        </div>
+    </div>
+
+    <script>
+        const COLS = 3;
+        const TOTAL_BOXES = 10;
+        const Z_BASE = 1000;
+
+        // ベースサイズ
+        const BASE_BOX_WIDTH = 100;
+        const BASE_BOX_HEIGHT = 80;
+        const BASE_OVERLAP = 34;
+        const BASE_SPACING = 20;
+
+        const container = document.querySelector('.js-box');
+        const containerWidth = container.clientWidth;
+        const containerHeight = container.clientHeight;
+
+        // 段数計算
+        const columnHeights = Array(COLS).fill(0);
+        for (let i = 0; i < TOTAL_BOXES; i++) {
+            const col = Math.floor(Math.random() * COLS);
+            columnHeights[col]++;
+        }
+
+        const maxStack = Math.max(...columnHeights);
+
+        // スケーリング計算
+        const availableWidth = containerWidth - BASE_SPACING * (COLS - 1);
+        const expectedStackHeight = BASE_BOX_HEIGHT * maxStack - BASE_OVERLAP * (maxStack - 1);
+        const scaleX = availableWidth / (COLS * BASE_BOX_WIDTH);
+        const scaleY = containerHeight / expectedStackHeight;
+        const scale = Math.min(scaleX, scaleY, 1);
+
+        const BOX_WIDTH = BASE_BOX_WIDTH * scale;
+        const BOX_HEIGHT = BASE_BOX_HEIGHT * scale;
+        const OVERLAP = BASE_OVERLAP * scale;
+        const SPACING = BASE_SPACING * scale;
+
+        const totalWidth = COLS * BOX_WIDTH + SPACING * (COLS - 1);
+        const startX = (containerWidth - totalWidth) / 2;
+
+
+        const stackHeight = BOX_HEIGHT * maxStack - OVERLAP * (maxStack - 1);
+        const bottomY = containerHeight - (containerHeight - stackHeight) / 2;
+
+        let delay = 0;
+
+        for (let row = 0; row < maxStack; row++) {
+            for (let col = 0; col < COLS; col++) {
+                const stackHeightForCol = columnHeights[col];
+                if (row >= stackHeightForCol) continue;
+
+                const box = document.createElement('div');
+                box.className = 'box';
+                box.style.width = `${BOX_WIDTH}px`;
+                box.style.height = `${BOX_HEIGHT}px`;
+                box.style.zIndex = Z_BASE + (row + 1);
+
+                const x = startX + col * (BOX_WIDTH + SPACING);
+                const y = bottomY - BOX_HEIGHT * row + OVERLAP * row;
+
+                container.appendChild(box);
+
+                gsap.set(box, { x: x, y: -150 });
+                gsap.to(box, {
+                    x: x,
+                    y: y,
+                    duration: 0.6,
+                    ease: 'power2.out',
+                    delay
+                });
+
+                delay += 0.05;
+            }
+        }
+    </script>
+
+</body>
+
+</html>
