@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>段ボール積み</title>
+    <title>段ボール積み（制御付き）</title>
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.2/dist/gsap.min.js"></script>
     <style>
         body {
@@ -19,9 +19,6 @@
         }
 
         .achievements {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
             padding: 20px;
             background: #fff;
             border-radius: 10px;
@@ -29,6 +26,8 @@
             max-width: 1000px;
             margin: 0 auto;
             align-items: center;
+            position: relative;
+            z-index: 0;
         }
 
         @media (max-width: 768px) {
@@ -40,101 +39,119 @@
         .achievements__box {
             min-height: 300px;
             position: relative;
-            /* overflow: hidden; */
             top: -80px;
         }
+
         .achievements__body {
             padding: 20px;
+        }
+
+        .controls {
+            max-width: 1000px;
+            margin: 20px auto;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .controls input {
+            width: 60px;
+            padding: 4px;
         }
     </style>
 </head>
 
 <body>
 
+    <div class="controls">
+        <label>枚数 <input type="number" id="boxCount" value="10" min="1"></label>
+        <label>列数 <input type="number" id="colCount" value="3" min="1"></label>
+        <button onclick="renderBoxes()">再描画</button>
+    </div>
+
     <div class="achievements">
         <div class="achievements__box js-box"></div>
-        <div class="achievements__body">
-            <h2 class="achievements__title">寄付実績 1400枚</h2>
-            <time datetime="2025-06-03">2025.06.03</time>
-            <p class="achievements__description">
-                寄付実績が1400枚を突破しました！
-            </p>
-        </div>
     </div>
 
     <script>
-        const COLS = 3;
-        const TOTAL_BOXES = 10;
-        const Z_BASE = 1000;
-
-        // ベースサイズ
         const BASE_BOX_WIDTH = 100;
         const BASE_BOX_HEIGHT = 80;
         const BASE_OVERLAP = 34;
         const BASE_SPACING = 20;
+        const Z_BASE = 1000;
 
-        const container = document.querySelector('.js-box');
-        const containerWidth = container.clientWidth;
-        const containerHeight = container.clientHeight;
+        function renderBoxes() {
+            const container = document.querySelector('.js-box');
+            container.innerHTML = ''; // 👈 既存の段ボールを削除
 
-        // 段数計算
-        const columnHeights = Array(COLS).fill(0);
-        for (let i = 0; i < TOTAL_BOXES; i++) {
-            const col = Math.floor(Math.random() * COLS);
-            columnHeights[col]++;
-        }
+            const TOTAL_BOXES = parseInt(document.getElementById('boxCount').value, 10);
+            const COLS = parseInt(document.getElementById('colCount').value, 10);
 
-        const maxStack = Math.max(...columnHeights);
+            const containerWidth = container.clientWidth;
+            const containerHeight = container.clientHeight;
 
-        // スケーリング計算
-        const availableWidth = containerWidth - BASE_SPACING * (COLS - 1);
-        const expectedStackHeight = BASE_BOX_HEIGHT * maxStack - BASE_OVERLAP * (maxStack - 1);
-        const scaleX = availableWidth / (COLS * BASE_BOX_WIDTH);
-        const scaleY = containerHeight / expectedStackHeight;
-        const scale = Math.min(scaleX, scaleY, 1);
+            const columnHeights = Array(COLS).fill(0);
+            for (let i = 0; i < TOTAL_BOXES; i++) {
+                const col = Math.floor(Math.random() * COLS);
+                columnHeights[col]++;
+            }
 
-        const BOX_WIDTH = BASE_BOX_WIDTH * scale;
-        const BOX_HEIGHT = BASE_BOX_HEIGHT * scale;
-        const OVERLAP = BASE_OVERLAP * scale;
-        const SPACING = BASE_SPACING * scale;
+            const maxStack = Math.max(...columnHeights);
 
-        const totalWidth = COLS * BOX_WIDTH + SPACING * (COLS - 1);
-        const startX = (containerWidth - totalWidth) / 2;
+            const availableWidth = containerWidth - BASE_SPACING * (COLS - 1);
+            const expectedStackHeight = BASE_BOX_HEIGHT * maxStack - BASE_OVERLAP * (maxStack - 1);
+            const scaleX = availableWidth / (COLS * BASE_BOX_WIDTH);
+            const scaleY = containerHeight / expectedStackHeight;
+            const scale = Math.min(scaleX, scaleY, 1);
 
+            const BOX_WIDTH = BASE_BOX_WIDTH * scale;
+            const BOX_HEIGHT = BASE_BOX_HEIGHT * scale;
+            const OVERLAP = BASE_OVERLAP * scale;
+            const SPACING = BASE_SPACING * scale;
 
-        const stackHeight = BOX_HEIGHT * maxStack - OVERLAP * (maxStack - 1);
-        const bottomY = containerHeight - (containerHeight - stackHeight) / 2;
+            const totalWidth = COLS * BOX_WIDTH + SPACING * (COLS - 1);
+            const startX = (containerWidth - totalWidth) / 2;
 
-        let delay = 0;
+            const stackHeight = BOX_HEIGHT * maxStack - OVERLAP * (maxStack - 1);
+            const bottomY = containerHeight - (containerHeight - stackHeight) / 2;
 
-        for (let row = 0; row < maxStack; row++) {
-            for (let col = 0; col < COLS; col++) {
-                const stackHeightForCol = columnHeights[col];
-                if (row >= stackHeightForCol) continue;
+            let delay = 0;
 
-                const box = document.createElement('div');
-                box.className = 'box';
-                box.style.width = `${BOX_WIDTH}px`;
-                box.style.height = `${BOX_HEIGHT}px`;
-                box.style.zIndex = Z_BASE + (row + 1);
+            for (let row = 0; row < maxStack; row++) {
+                for (let col = 0; col < COLS; col++) {
+                    const stackHeightForCol = columnHeights[col];
+                    if (row >= stackHeightForCol) continue;
 
-                const x = startX + col * (BOX_WIDTH + SPACING);
-                const y = bottomY - BOX_HEIGHT * row + OVERLAP * row;
+                    const box = document.createElement('div');
+                    box.className = 'box';
+                    box.style.width = `${BOX_WIDTH}px`;
+                    box.style.height = `${BOX_HEIGHT}px`;
+                    box.style.zIndex = Z_BASE + (row + 1);
 
-                container.appendChild(box);
+                    const x = startX + col * (BOX_WIDTH + SPACING);
+                    const y = bottomY - BOX_HEIGHT * row + OVERLAP * row;
 
-                gsap.set(box, { x: x, y: -150 });
-                gsap.to(box, {
-                    x: x,
-                    y: y,
-                    duration: 0.6,
-                    ease: 'power2.out',
-                    delay
-                });
+                    container.appendChild(box);
 
-                delay += 0.05;
+                    gsap.set(box, { x: x, y: -150 });
+                    gsap.to(box, {
+                        x: x,
+                        y: y,
+                        duration: 0.6,
+                        ease: 'power2.out',
+                        delay: delay
+                    });
+
+                    delay += 0.05;
+                }
             }
         }
+
+        // 初回描画
+        window.addEventListener('load', renderBoxes);
     </script>
 
 </body>
